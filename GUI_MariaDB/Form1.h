@@ -232,6 +232,7 @@ namespace CppCLRWinFormsProject {
 		cmdDataBase->Parameters->AddWithValue("@ID", gesuchteID);
 		MySqlDataReader^ myReader;
 
+
 		try {
 			conDataBase->Open();
 			myReader = cmdDataBase->ExecuteReader();
