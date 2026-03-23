@@ -224,8 +224,10 @@ namespace CppCLRWinFormsProject {
 		// connect zur DB
 		MySqlConnection^ conDataBase = gcnew MySqlConnection(constring);
 		// sql über connect
-		sqltxt = "SELECT*, (SELECT COUNT(ID) FROM sql_database_test.tbl_test) AS max_id "
-			"FROM sql_database_test.tbl_test WHERE ID =@ID;";
+		sqltxt = "SELECT *, "
+        "(SELECT COUNT(ID) FROM sql_database_test.tbl_test) AS total_count, " // zählt alle vorhandenen Datensätze.
+        "(SELECT COUNT(ID) FROM sql_database_test.tbl_test WHERE ID <= @ID) AS row_num " //zählt, der wievielte Datensatz das ist (alle IDs <= der gesuchten ID)
+		"FROM sql_database_test.tbl_test WHERE ID = @ID;";
 
 		MySqlCommand^ cmdDataBase = gcnew MySqlCommand(sqltxt, conDataBase);
 		//reader
@@ -237,35 +239,85 @@ namespace CppCLRWinFormsProject {
 			conDataBase->Open();
 			myReader = cmdDataBase->ExecuteReader();
 			if (myReader->Read()) {
-				this->txt_ID->Text = myReader->GetInt32(0).ToString();
-				this->txt_ID2->Text = myReader->GetInt32(0).ToString();
+				this->txt_ID->Text = myReader->GetInt32(0).ToString();				
 				this->txt_Vorname->Text = myReader->GetString(1);
 				this->txt_Nachname->Text = myReader->GetString(2);
-				this->txt_maxID->Text = myReader["max_id"]->ToString();
+
+				int rowNum = Convert::ToInt32(myReader["row_num"]);
+				int totalCount = Convert::ToInt32(myReader["total_count"]);
+				
+				this->txt_ID2->Text = rowNum.ToString();
+				this->txt_maxID->Text = totalCount.ToString();
+
+				this->btn_left->Enabled = (rowNum > 1);
+				this->btn_right->Enabled = (rowNum < totalCount);
 			}
 		}
 		catch (Exception^ ex) {
 			MessageBox::Show(ex->Message);
 		}
-	}
-	private: System::Void btn_left_Click(System::Object^ sender, System::EventArgs^ e) {
-		if (aktuelleID >1){
-			aktuelleID--;
-			datensatz_auslesen(aktuelleID);
+		finally {
+			if (conDataBase->State == ConnectionState::Open) {
+				conDataBase->Close();
+			}
 		}
-		else
-		{
-			MessageBox::Show("Bist du dumm? Ist schon 1!!!","Information", 
-				MessageBoxButtons::OK, MessageBoxIcon::Information);
+	}
+
+	private: int naechsteID(int aktuelle_id, bool vorwaerts) {
+		int neueID = -1;
+		String^ constring = L"datasource=localhost;port=3306;username=root;password=DAA";
+		MySqlConnection^ conDataBase = gcnew MySqlConnection(constring);
+		String^ sqltxt;
+
+		if (vorwaerts) {
+			sqltxt = "SELECT MIN(ID) FROM sql_database_test.tbl_test WHERE ID>@ID;";
+		}
+		else {
+			sqltxt = "SELECT MAX(ID) FROM sql_database_test.tbl_test WHERE ID<@ID;";
+		}
+
+		MySqlCommand^ cmdDataBase = gcnew MySqlCommand(sqltxt, conDataBase);
+		cmdDataBase->Parameters->AddWithValue("@ID", aktuelle_id);
+
+		try {
+			conDataBase->Open();
+			Object^ result = cmdDataBase->ExecuteScalar();
+			// Prüfen, ob eine ID gefunden wurde 
+			if (result != nullptr && result != DBNull::Value) {
+				neueID = Convert::ToInt32(result);
+			}
+		}
+		catch (Exception^ ex) {
+			MessageBox::Show(ex->Message);
+		}
+		finally {
+			conDataBase->Close();
+		}
+		return neueID;
+	}
+
+	private: System::Void btn_left_Click(System::Object^ sender, System::EventArgs^ e) {
+		int prevID = naechsteID(aktuelleID, false);
+		if (prevID !=-1){
+			aktuelleID=prevID;
+			datensatz_auslesen(aktuelleID);
 		}
 	}
 	private: System::Void btn_right_Click(System::Object^ sender, System::EventArgs^ e) {
-		aktuelleID++;
-		datensatz_auslesen(aktuelleID);
+		int nextID = naechsteID(aktuelleID, true);
+
+		if (nextID != -1) {
+			aktuelleID = nextID;
+			datensatz_auslesen(aktuelleID);
+		}		
 	}
 	private: System::Void Form1_Load(System::Object^ sender, System::EventArgs^ e) {
-		aktuelleID = 1;
-		datensatz_auslesen(aktuelleID);
+		int ersteID = naechsteID(0, true);
+
+		if (ersteID != -1) {
+			aktuelleID = ersteID;
+			datensatz_auslesen(aktuelleID);
+		}
 	}
 
 };
