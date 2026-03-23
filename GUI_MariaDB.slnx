@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="GUI_MariaDB/GUI_MariaDB.vcxproj" Id="04b6f11b-ef8c-4933-b193-8ad9b7ed12d2" />
+</Solution>
