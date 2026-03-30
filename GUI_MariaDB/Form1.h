@@ -60,6 +60,10 @@ namespace CppCLRWinFormsProject {
 	private: System::Windows::Forms::Label^ lbl_von;
 	private: System::Windows::Forms::Button^ btn_auslesen;
 	private: System::Windows::Forms::Button^ btn_aendern;
+	private: System::Windows::Forms::Button^ btn_neu;
+	private: System::Windows::Forms::Button^ btn_loeschen;
+	private: System::Windows::Forms::Button^ btn_AufAb;
+
 
 
 		   /// <summary>
@@ -87,6 +91,9 @@ namespace CppCLRWinFormsProject {
 			this->lbl_von = (gcnew System::Windows::Forms::Label());
 			this->btn_auslesen = (gcnew System::Windows::Forms::Button());
 			this->btn_aendern = (gcnew System::Windows::Forms::Button());
+			this->btn_neu = (gcnew System::Windows::Forms::Button());
+			this->btn_loeschen = (gcnew System::Windows::Forms::Button());
+			this->btn_AufAb = (gcnew System::Windows::Forms::Button());
 			this->SuspendLayout();
 			// 
 			// txt_ID
@@ -218,15 +225,54 @@ namespace CppCLRWinFormsProject {
 			this->btn_aendern->Name = L"btn_aendern";
 			this->btn_aendern->Size = System::Drawing::Size(124, 52);
 			this->btn_aendern->TabIndex = 14;
-			this->btn_aendern->Text = L"Aendern";
+			this->btn_aendern->Text = L"Anpassen";
 			this->btn_aendern->UseVisualStyleBackColor = true;
 			this->btn_aendern->Click += gcnew System::EventHandler(this, &Form1::btn_aendern_Click);
+			// 
+			// btn_neu
+			// 
+			this->btn_neu->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 14, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(0)));
+			this->btn_neu->Location = System::Drawing::Point(276, 508);
+			this->btn_neu->Name = L"btn_neu";
+			this->btn_neu->Size = System::Drawing::Size(124, 52);
+			this->btn_neu->TabIndex = 15;
+			this->btn_neu->Text = L"Neu";
+			this->btn_neu->UseVisualStyleBackColor = true;
+			this->btn_neu->Click += gcnew System::EventHandler(this, &Form1::btn_neu_Click);
+			// 
+			// btn_loeschen
+			// 
+			this->btn_loeschen->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 14, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(0)));
+			this->btn_loeschen->Location = System::Drawing::Point(406, 508);
+			this->btn_loeschen->Name = L"btn_loeschen";
+			this->btn_loeschen->Size = System::Drawing::Size(124, 52);
+			this->btn_loeschen->TabIndex = 16;
+			this->btn_loeschen->Text = L"Entfernen";
+			this->btn_loeschen->UseVisualStyleBackColor = true;
+			this->btn_loeschen->Click += gcnew System::EventHandler(this, &Form1::btn_loeschen_Click);
+			// 
+			// btn_AufAb
+			// 
+			this->btn_AufAb->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(0)));
+			this->btn_AufAb->Location = System::Drawing::Point(508, 182);
+			this->btn_AufAb->Name = L"btn_AufAb";
+			this->btn_AufAb->Size = System::Drawing::Size(110, 20);
+			this->btn_AufAb->TabIndex = 17;
+			this->btn_AufAb->Text = L"Aufsteigend sortiert";
+			this->btn_AufAb->UseVisualStyleBackColor = true;
+			this->btn_AufAb->Click += gcnew System::EventHandler(this, &Form1::btn_AufAb_Click);
 			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(799, 572);
+			this->Controls->Add(this->btn_AufAb);
+			this->Controls->Add(this->btn_loeschen);
+			this->Controls->Add(this->btn_neu);
 			this->Controls->Add(this->btn_aendern);
 			this->Controls->Add(this->btn_auslesen);
 			this->Controls->Add(this->lbl_von);
@@ -273,9 +319,16 @@ namespace CppCLRWinFormsProject {
 		String^ sqltxt;
 		String^ sqltxtmax;
 
-		datensatz = int::Parse(this->txt_ID2->Text);
+		if (!int::TryParse(this->txt_ID2->Text, datensatz)) {
+			return; 
+		}
 
-		sqltxt = "SELECT * FROM sql_database_test.tbl_test LIMIT " + (datensatz - 1) + ", 1; ";
+		String^ richtung = "ASC"; // Aufsteigend 
+		if (this->btn_AufAb->Text == "Ab") {
+			richtung = "DESC"; // Absteigend 
+		}
+
+		sqltxt = "SELECT * FROM sql_database_test.tbl_test ORDER BY ID " + richtung + " LIMIT " + (datensatz - 1) + ", 1;";
 		sqltxtmax = "SELECT COUNT(ID) FROM sql_database_test.tbl_test;";
 
 		MySqlDataReader^ myReader;
@@ -355,11 +408,85 @@ namespace CppCLRWinFormsProject {
 		MySqlDataReader^ myReader = cmdDB(sqltxt);//Methode aufrufen
 
 		if (myReader != nullptr) {
-			MessageBox::Show("Datensatz erfolgreich geändert!");
+			MessageBox::Show("Datensatz erfolgreich angepasst!");
 
 			// Ansicht aktualisieren
 			datensatz_auslesen();
 		}
+	}
+	private: System::Void btn_neu_Click(System::Object^ sender, System::EventArgs^ e) {
+		String^ sqltxt = "SELECT MAX(ID) FROM sql_database_test.tbl_test;";
+		MySqlDataReader^ myReader = cmdDB(sqltxt);
+
+		int neueID = 1;
+
+		if (myReader->Read()) {
+			if (!myReader->IsDBNull(0)) {
+				neueID = myReader->GetInt32(0) + 1;
+			}
+		}
+		myReader->Close();
+
+		sqltxt = "INSERT INTO sql_database_test.tbl_test (ID, Vorname, Nachname) VALUES (" + neueID + ", '', '');";
+		myReader = cmdDB(sqltxt);
+		if (myReader != nullptr) {
+			myReader->Close(); 
+		}
+
+		sqltxt = "SELECT COUNT(ID) FROM sql_database_test.tbl_test;";
+		myReader = cmdDB(sqltxt);
+		int maxAnzahl = 1;
+		if (myReader != nullptr) {
+			if (myReader->Read()) {
+				maxAnzahl = myReader->GetInt32(0);
+			}
+			myReader->Close(); 
+		}
+
+		// Anzeige auf den neu angelegten Datensatz setzen
+		this->txt_ID2->Text = maxAnzahl.ToString();
+		datensatz_auslesen();
+
+	}
+	private: System::Void btn_loeschen_Click(System::Object^ sender, System::EventArgs^ e) {
+		String^ id = this->txt_ID->Text;
+
+		//Abfrage
+		System::Windows::Forms::DialogResult antwort = MessageBox::Show(
+			"Datensatz mit der ID " + id + " wirklich entfernen?",
+			"Bestätigen",
+			MessageBoxButtons::YesNo,
+			MessageBoxIcon::Warning
+		);
+
+		if (antwort != System::Windows::Forms::DialogResult::Yes) {
+			return;
+		}
+
+		String^ sqltxt = "DELETE FROM sql_database_test.tbl_test WHERE ID = " + id + ";";
+
+		MySqlDataReader^ myReader = cmdDB(sqltxt);//Methode aufrufen
+
+		if (myReader != nullptr) {
+			myReader->Close();
+			MessageBox::Show("Datensatz erfolgreich entfernt!");
+
+			this->txt_ID2->Text = "1";
+
+			datensatz_auslesen();
+		}
+	}
+	private: System::Void btn_AufAb_Click(System::Object^ sender, System::EventArgs^ e) {
+		if(this->btn_AufAb->Text == "Aufsteigend sortiert"){
+			this->btn_AufAb->Text = "Absteigend sortiert";
+			this->btn_AufAb->BackColor = Color::LightBlue;
+		}
+		else {
+			this->btn_AufAb->Text = "Aufsteigend sortiert";
+			this->btn_AufAb->BackColor = Color::White;
+		}
+		this->txt_ID2->Text = "1";
+		datensatz_auslesen();		
 	}
 };
 }
